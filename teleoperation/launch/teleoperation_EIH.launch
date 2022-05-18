@@ -1,6 +1,6 @@
 <launch>
 
-	<param name="teleoperation_mode" type ="int" value="1"/>
+	<param name="teleoperation_mode" type ="int" value="2"/>
 	<!-- 1=increments command, 2=rate control -->
 
 	<node name="master_controller_node" pkg="teleoperation" type="master_controller_node_EIH" output="screen"/>

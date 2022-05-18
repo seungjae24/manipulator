@@ -126,7 +126,44 @@ public:
             // Implement your controller
 
             // Update Desired End-effector Pose to the 'target_pose_' variable.
+			
+			Eigen::Matrix4d RT;
+			RT << 1, 0, 0, 0, 
+				  0, 0, 1, 0, 
+				  0, 1, 0, 0, 
+				  0, 0, 0, 1;
 
+			Eigen::Matrix4d Delta_T = Eigen::Matrix4d::Identity();
+			Delta_T.block<3, 3>(0, 0) = mst_rot_eig;
+			Delta_T(0,3) = master_cmd.pose.position.x;
+			Delta_T(1,3) = master_cmd.pose.position.y;
+			Delta_T(2,3) = master_cmd.pose.position.z;
+
+			Eigen::Matrix4d Current_T = Eigen::Matrix4d::Identity();
+			Current_T.block<3, 3>(0, 0) = current_rot_eig;
+			Current_T(0,3) = target_pose_.pose.position.x;
+			Current_T(1,3) = target_pose_.pose.position.y;
+			Current_T(2,3) = target_pose_.pose.position.z;
+
+			Eigen::Matrix4d Target_T = Current_T*Current_T.inverse()*RT*Delta_T*RT.inverse()*Current_T; 
+
+			tf::Matrix3x3 rotation_matrix;
+			rotation_matrix.setValue(Target_T(0,0), Target_T(0,1), Target_T(0,2),
+									 Target_T(1,0), Target_T(1,1), Target_T(1,2),
+									 Target_T(2,0), Target_T(2,1), Target_T(2,2));
+			
+        	tf::Quaternion q;
+        	rotation_matrix.getRotation(q);
+
+            // Update Desired End-effector Pose to the 'target_pose_' variable.
+			target_pose_.pose.position.x = Target_T(0,3);//target_pose_.pose.position.x + translation[0];
+			target_pose_.pose.position.y = Target_T(1,3);//target_pose_.pose.position.y + translation[1];
+			target_pose_.pose.position.z = Target_T(2,3);//target_pose_.pose.position.z + translation[2];
+
+			target_pose_.pose.orientation.x = q.x();
+			target_pose_.pose.orientation.y = q.y();
+			target_pose_.pose.orientation.z = q.z();
+			target_pose_.pose.orientation.w = q.w();
         }
 
         // 2.Position to Velocity : publish the position command

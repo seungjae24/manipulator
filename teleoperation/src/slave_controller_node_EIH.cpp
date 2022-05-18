@@ -120,18 +120,17 @@ public:
 		
 		// Debugging
 		std::cout << "\n ===========::SlaveNode::============== \n" << std::endl;
-		std::cout << "\nmaster_command: " << master_cmd.pose.position.x 
-								<< ", " << master_cmd.pose.position.y 
-								<< ", " << master_cmd.pose.position.z << "\n"
-								<< "Rotation\n" << mst_rot_eig << std::endl;
+		// std::cout << "\nmaster_command: " << master_cmd.pose.position.x 
+		// 						<< ", " << master_cmd.pose.position.y 
+		// 						<< ", " << master_cmd.pose.position.z << "\n"
+		// 						<< "Rotation\n" << mst_rot_eig << std::endl;
 
-
-		std::cout << "\nslave_pose: " << target_pose_.pose.position.x 
-							<< ", " << target_pose_.pose.position.y 
-							<< ", " << target_pose_.pose.position.z << "\n"
-							<< "Rotation\n" << current_rot_eig << std::endl;
+		// std::cout << "\nslave_pose: " << target_pose_.pose.position.x 
+		// 					<< ", " << target_pose_.pose.position.y 
+		// 					<< ", " << target_pose_.pose.position.z << "\n"
+		// 					<< "Rotation\n" << current_rot_eig << std::endl;
 							
-		std::cout << "\nR_BaseToCam_:\n" << R_BaseToCam_ << std::endl;
+		// std::cout << "\nR_BaseToCam_:\n" << R_BaseToCam_ << std::endl;
 		
 		
         // The value of 'teleoperation_mode_' varaible is defined by the 'teleoperation_mode' parameter in the 'teleoperation.launch' file
@@ -143,37 +142,53 @@ public:
 			// We need target pose transformed in camera frame.
 			// the master command = displacement is based on the world frame.
 			
-			Eigen::Matrix3d T_master2camera;
-			T_master2camera << 0, 0, 1, 1, 0, 0, 0, 1, 0;
-			Eigen::Matrix3d T_camera2world = R_BaseToCam_;
+			// --------------------------------------------------------------------------------------
+						
+			Eigen::Matrix4d RT;
+			RT << 0, 1, 0, 0, 
+				 -1, 0, 0, 0, 
+				  0, 0, 1, 0, 
+				  0, 0, 0, 1;
+
+			Eigen::Matrix4d Delta_T = Eigen::Matrix4d::Identity();
+			Delta_T.block<3, 3>(0, 0) = mst_rot_eig;
+			Delta_T(0,3) = master_cmd.pose.position.x;
+			Delta_T(1,3) = master_cmd.pose.position.y;
+			Delta_T(2,3) = master_cmd.pose.position.z;
+
+			Eigen::Matrix4d Current_T = Eigen::Matrix4d::Identity();
+			Current_T.block<3, 3>(0, 0) = current_rot_eig;
+			Current_T(0,3) = target_pose_.pose.position.x;
+			Current_T(1,3) = target_pose_.pose.position.y;
+			Current_T(2,3) = target_pose_.pose.position.z;
+
+			Eigen::Matrix4d Target_T = Current_T*RT*Delta_T*RT.inverse(); 
+
+			tf::Matrix3x3 rotation_matrix;
+			rotation_matrix.setValue(Target_T(0,0), Target_T(0,1), Target_T(0,2),
+									 Target_T(1,0), Target_T(1,1), Target_T(1,2),
+									 Target_T(2,0), Target_T(2,1), Target_T(2,2));
 			
-			Eigen::Vector3d t(master_cmd.pose.position.x, master_cmd.pose.position.y, master_cmd.pose.position.z);
-			Eigen::Vector3d translation = T_camera2world*T_master2camera*t;
-
-			Eigen::Vector3d mst_rot = mst_rot_eig.eulerAngles(0, 1, 2);
-			Eigen::Matrix3d rotation; // camera rotation
-			rotation = Eigen::AngleAxisd(mst_rot[2], Eigen::Vector3d::UnitX())
-					 * Eigen::AngleAxisd(mst_rot[0], Eigen::Vector3d::UnitY())
-					 * Eigen::AngleAxisd(mst_rot[1], Eigen::Vector3d::UnitZ());
-			
-			Eigen::Matrix3d	R = rotation*current_rot_eig; // mst_rot_eig*R_master2camera*R_camera2world;
-
-			cout << "Translation\n " << translation << endl;
-			cout << "Target Rotation\n" << rotation << endl;
-
-			std::cout << "\n ===========::SlaveNode::============== \n" << std::endl;
+        	tf::Quaternion q;
+        	rotation_matrix.getRotation(q);
 
             // Update Desired End-effector Pose to the 'target_pose_' variable.
-			target_pose_.pose.position.x = target_pose_.pose.position.x + translation[0];
-			target_pose_.pose.position.y = target_pose_.pose.position.y + translation[1];
-			target_pose_.pose.position.z = target_pose_.pose.position.z + translation[2];
-
-			Eigen::Quaterniond q(current_rot_eig);
+			target_pose_.pose.position.x = Target_T(0,3);//target_pose_.pose.position.x + translation[0];
+			target_pose_.pose.position.y = Target_T(1,3);//target_pose_.pose.position.y + translation[1];
+			target_pose_.pose.position.z = Target_T(2,3);//target_pose_.pose.position.z + translation[2];
 
 			target_pose_.pose.orientation.x = q.x();
 			target_pose_.pose.orientation.y = q.y();
 			target_pose_.pose.orientation.z = q.z();
 			target_pose_.pose.orientation.w = q.w();
+
+			// // Debugging
+			// Eigen::Vector3d rot_eig_euler = rotation.toRotationMatrix().eulerAngles(0, 1, 2);
+			// std::cout << "mst_rot(rpy): " << roll << ", " << pitch << ", " << yaw << std::endl;
+			// std::cout << "rot_eig(rpy): " << rot_eig_euler[0] << ", " << rot_eig_euler[1] << ", " << rot_eig_euler[2] << std::endl;
+			// std::cout << "\n ===========::SlaveNode::============== \n" << std::endl;
+
+			//----------------------------------------------------------------------------------------------
         }
 
         // 2.Position to Velocity : publish the position command
@@ -181,17 +196,38 @@ public:
 
             // Implement your controller
 
-			int k = 1;
+			Eigen::Matrix4d RT;
+			RT << 0, 1, 0, 0, 
+				 -1, 0, 0, 0, 
+				  0, 0, 1, 0, 
+				  0, 0, 0, 1;
+
+			Eigen::Matrix4d Delta_T = Eigen::Matrix4d::Identity();
+			Delta_T.block<3, 3>(0, 0) = mst_rot_eig;
+			Delta_T(0,3) = master_cmd.pose.position.x;
+			Delta_T(1,3) = master_cmd.pose.position.y;
+			Delta_T(2,3) = master_cmd.pose.position.z;
+
+			Eigen::Matrix4d Current_T = Eigen::Matrix4d::Identity();
+			Current_T.block<3, 3>(0, 0) = current_rot_eig;
+			Current_T(0,3) = target_pose_.pose.position.x;
+			Current_T(1,3) = target_pose_.pose.position.y;
+			Current_T(2,3) = target_pose_.pose.position.z;
+
+			Eigen::Matrix4d Target_T = Current_T*RT*Delta_T*RT.inverse(); 
+
+			tf::Matrix3x3 rotation_matrix;
+			rotation_matrix.setValue(Target_T(0,0), Target_T(0,1), Target_T(0,2),
+									 Target_T(1,0), Target_T(1,1), Target_T(1,2),
+									 Target_T(2,0), Target_T(2,1), Target_T(2,2));
+			
+        	tf::Quaternion q;
+        	rotation_matrix.getRotation(q);
 
             // Update Desired End-effector Pose to the 'target_pose_' variable.
-			target_pose_.pose.position.x = target_pose_.pose.position.x + k*master_cmd.pose.position.x;
-			target_pose_.pose.position.y = target_pose_.pose.position.y + k*master_cmd.pose.position.y;
-			target_pose_.pose.position.z = target_pose_.pose.position.z + k*master_cmd.pose.position.z;
-
-			Eigen::Matrix3d rot = current_rot_eig;
-			for (int i=0; i<k; i++) rot = mst_rot_eig*rot;
-
-			Eigen::Quaterniond q(rot);
+			target_pose_.pose.position.x = Target_T(0,3);
+			target_pose_.pose.position.y = Target_T(1,3);
+			target_pose_.pose.position.z = Target_T(2,3);
 
 			target_pose_.pose.orientation.x = q.x();
 			target_pose_.pose.orientation.y = q.y();

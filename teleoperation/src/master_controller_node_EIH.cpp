@@ -86,27 +86,33 @@ public:
             tfScalar yaw, pitch, roll;
             mat.getEulerYPR(yaw, pitch, roll);
 
-            std::cout << "----------------::MasterNode::-----------------" << std::endl;
+            std::cout << " ===========::MasterNode::===========" << std::endl;
             std::cout << " master_command: " << master_command.pose.position.x 
                                           << ", " << master_command.pose.position.y 
                                           << ", " << master_command.pose.position.z << "\n"
                                           << "RPY: " << roll << ", " << pitch << ", " << yaw << std::endl;
-            std::cout << "----------------::MasterNode::-----------------" << std::endl;
+            std::cout << " ===========::MasterNode::===========" << std::endl;
         }
 
         // 2.Position to Velocity : publish the position command
         else if(teleoperation_mode_ == 2){
 
             // Translation
-            master_command.pose.position.x = m_px; // replace '0.0' to your command value
-            master_command.pose.position.y = m_py; // replace '0.0' to your command value
-            master_command.pose.position.z = m_pz; // replace '0.0' to your command value
+            double linear_k = 0.1;
+            double rotational_k = 0.1;
+
+            master_command.pose.position.x = linear_k*m_px; // replace '0.0' to your command value
+            master_command.pose.position.y = linear_k*m_py; // replace '0.0' to your command value
+            master_command.pose.position.z = linear_k*m_pz; // replace '0.0' to your command value
+
+            Eigen::Quaternionf identity_q = Eigen::Quaternionf::Identity();
+            Eigen::Quaternionf q = identity_q.slerp(rotational_k, m_rot);
 
             // Orientation
-            master_command.pose.orientation.x = m_rot.x(); // replace value to your command value
-            master_command.pose.orientation.y = m_rot.y(); // replace value to your command value
-            master_command.pose.orientation.z = m_rot.z(); // replace value to your command value
-            master_command.pose.orientation.w = m_rot.w(); // replace value to your command value
+            master_command.pose.orientation.x = q.x(); // replace value to your command value
+            master_command.pose.orientation.y = q.y(); // replace value to your command value
+            master_command.pose.orientation.z = q.z(); // replace value to your command value
+            master_command.pose.orientation.w = q.w(); // replace value to your command value
         }
 
 

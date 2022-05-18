@@ -87,7 +87,12 @@ public:
         KDL::JntArray q_target = KDL::JntArray(7);
         int ik_res = KDLInverseKinematics(franka_chain_, target, q_current, q_target);
         
-        KDLJntArrayToJointStateMsg(q_target, desired_joint_state);
+        if (ik_res == KDL::SolverI::E_NOERROR) {
+            KDLJntArrayToJointStateMsg(q_target, desired_joint_state);
+        }
+        else {
+            desired_joint_state = current_joint_state;
+        }
         
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
