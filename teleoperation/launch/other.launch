@@ -1,0 +1,28 @@
+<launch>
+
+	<!-- World Upload-->
+	<include file="$(find gazebo_ros)/launch/empty_world.launch">
+		<arg name="world_name" value="$(find gazebo_launch)/world/table_and_cans.world"/>
+	
+		<arg name="paused" value="true"/>
+	</include>
+	
+	<!-- Robot Upload -->
+
+	<!-- EIH -->
+	<include file="$(find franka_gazebo)/launch/panda_arm_hand_position_EIH.launch">
+		<arg name="robot_name" value="panda"/>
+		<arg name="robot_namespace" value="franka"/>
+	</include>
+
+	<include file="$(find kinect)/launch/kinect_gazebo_upload.launch"/>
+
+	<node name="franka_kinematics_solver_node" pkg="franka_controller" type="franka_kinematics_solver_node" output="screen"/>
+	<node name="franka_joint_command_node" pkg="franka_controller" type="franka_joint_command_node" output="screen"/>
+
+	<node name="virtual_master_device_node" pkg="virtual_master_device" type="virtual_master_device_node" output="screen"/>
+	
+	<node pkg="tf" type="static_transform_publisher" name="master_tf_broadcaster" args="-1 0.5 0.2 1.570796 0 1.570796 world master 500" />
+
+
+</launch>

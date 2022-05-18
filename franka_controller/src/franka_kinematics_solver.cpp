@@ -88,7 +88,7 @@ public:
         int ik_res = KDLInverseKinematics(franka_chain_, target, q_current, q_target);
         
         KDLJntArrayToJointStateMsg(q_target, desired_joint_state);
-
+        
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 

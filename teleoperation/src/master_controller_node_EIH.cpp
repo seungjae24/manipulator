@@ -73,14 +73,25 @@ public:
             
             tf::Quaternion q = m_q*old_q.inverse();
 
-            // auto m_euler = m_rot.toRotationMatrix().eulerAngles(0, 1, 2);
-            // auto old_euler = old_rot.toRotationMatrix().eulerAngles(0, 1, 2);
+            q.normalize();
 
             // Orientation
             master_command.pose.orientation.x = q.x(); // replace value to your command value
             master_command.pose.orientation.y = q.y(); // replace value to your command value
             master_command.pose.orientation.z = q.z(); // replace value to your command value
             master_command.pose.orientation.w = q.w(); // replace value to your command value
+
+            // Debugging
+            tf::Matrix3x3 mat(q);
+            tfScalar yaw, pitch, roll;
+            mat.getEulerYPR(yaw, pitch, roll);
+
+            std::cout << "----------------::MasterNode::-----------------" << std::endl;
+            std::cout << " master_command: " << master_command.pose.position.x 
+                                          << ", " << master_command.pose.position.y 
+                                          << ", " << master_command.pose.position.z << "\n"
+                                          << "RPY: " << roll << ", " << pitch << ", " << yaw << std::endl;
+            std::cout << "----------------::MasterNode::-----------------" << std::endl;
         }
 
         // 2.Position to Velocity : publish the position command
