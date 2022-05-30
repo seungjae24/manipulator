@@ -119,7 +119,7 @@ public:
         Eigen::MatrixXd AB = A*B; // possible to multiply matrices
 		
 		// Debugging
-		std::cout << "\n ===========::SlaveNode::============== \n" << std::endl;
+		// std::cout << "\n ===========::SlaveNode::============== \n" << std::endl;
 		// std::cout << "\nmaster_command: " << master_cmd.pose.position.x 
 		// 						<< ", " << master_cmd.pose.position.y 
 		// 						<< ", " << master_cmd.pose.position.z << "\n"

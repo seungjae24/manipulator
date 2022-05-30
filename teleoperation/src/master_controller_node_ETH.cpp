@@ -62,16 +62,20 @@ public:
         if(teleoperation_mode_ == 1){
             
             // Make your increments command
+            double translational_k = 1.0;
+            double rotational_k = 1.0;
 
             // Translation
-            master_command.pose.position.x = m_px - old_msg.pos.pose.position.x; // replace '0.0' to your command value
-            master_command.pose.position.y = m_py - old_msg.pos.pose.position.y; // replace '0.0' to your command value
-            master_command.pose.position.z = m_pz - old_msg.pos.pose.position.z; // replace '0.0' to your command value
+            master_command.pose.position.x = translational_k * (m_px - old_msg.pos.pose.position.x); // replace '0.0' to your command value
+            master_command.pose.position.y = translational_k * (m_py - old_msg.pos.pose.position.y); // replace '0.0' to your command value
+            master_command.pose.position.z = translational_k * (m_pz - old_msg.pos.pose.position.z); // replace '0.0' to your command value
 
-            tf::Quaternion m_q(msg->pos.pose.orientation.x, msg->pos.pose.orientation.y, msg->pos.pose.orientation.z, msg->pos.pose.orientation.w);
-            tf::Quaternion old_q(old_msg.pos.pose.orientation.x, old_msg.pos.pose.orientation.y, old_msg.pos.pose.orientation.z, old_msg.pos.pose.orientation.w);
+            Eigen::Quaternionf old_rot( old_msg.pos.pose.orientation.w, old_msg.pos.pose.orientation.x, old_msg.pos.pose.orientation.y, old_msg.pos.pose.orientation.z);
             
-            tf::Quaternion q = m_q*old_q.inverse();
+            Eigen::Quaternionf delta_q = m_rot*old_rot.inverse();
+
+            Eigen::Quaternionf identity_q = Eigen::Quaternionf::Identity();
+            Eigen::Quaternionf q = identity_q.slerp(rotational_k, delta_q);
 
             q.normalize();
 
@@ -82,28 +86,23 @@ public:
             master_command.pose.orientation.w = q.w(); // replace value to your command value
 
             // Debugging
-            tf::Matrix3x3 mat(q);
-            tfScalar yaw, pitch, roll;
-            mat.getEulerYPR(yaw, pitch, roll);
-
-            std::cout << " ===========::MasterNode::===========" << std::endl;
-            std::cout << " master_command: " << master_command.pose.position.x 
-                                          << ", " << master_command.pose.position.y 
-                                          << ", " << master_command.pose.position.z << "\n"
-                                          << "RPY: " << roll << ", " << pitch << ", " << yaw << std::endl;
-            std::cout << " ===========::MasterNode::===========" << std::endl;
+            // std::cout << " ===========::MasterNode::===========" << std::endl;
+            // std::cout << " master_command: " << master_command.pose.position.x 
+            //                               << ", " << master_command.pose.position.y 
+            //                               << ", " << master_command.pose.position.z << "\n" << std::endl;
+            // std::cout << " ===========::MasterNode::===========" << std::endl;
         }
 
         // 2.Position to Velocity : publish the position command
         else if(teleoperation_mode_ == 2){
 
-            // Translation
-            double linear_k = 0.1;
+            double translational_k = 0.1;
             double rotational_k = 0.1;
 
-            master_command.pose.position.x = linear_k*m_px; // replace '0.0' to your command value
-            master_command.pose.position.y = linear_k*m_py; // replace '0.0' to your command value
-            master_command.pose.position.z = linear_k*m_pz; // replace '0.0' to your command value
+            // Translation
+            master_command.pose.position.x = translational_k*m_px; // replace '0.0' to your command value
+            master_command.pose.position.y = translational_k*m_py; // replace '0.0' to your command value
+            master_command.pose.position.z = translational_k*m_pz; // replace '0.0' to your command value
 
             Eigen::Quaternionf identity_q = Eigen::Quaternionf::Identity();
             Eigen::Quaternionf q = identity_q.slerp(rotational_k, m_rot);

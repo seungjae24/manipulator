@@ -127,11 +127,16 @@ public:
 
             // Update Desired End-effector Pose to the 'target_pose_' variable.
 			
-			Eigen::Matrix4d RT;
-			RT << 1, 0, 0, 0, 
-				  0, 0, 1, 0, 
-				  0, 1, 0, 0, 
-				  0, 0, 0, 1;
+			Eigen::Matrix4d T_base2master;
+			T_base2master << 1, 0, 0, 0, 
+				  			0, 0, -1, 0, 
+				  			0, 1, 0, 0, 
+				  			0, 0, 0, 1;
+			
+			Eigen::Matrix4d T_EE2base = Eigen::Matrix4d::Identity();
+			T_EE2base.block<3, 3>(0, 0) = current_rot_eig.inverse();
+
+			Eigen::Matrix4d RT = T_EE2base * T_base2master;
 
 			Eigen::Matrix4d Delta_T = Eigen::Matrix4d::Identity();
 			Delta_T.block<3, 3>(0, 0) = mst_rot_eig;
@@ -145,7 +150,7 @@ public:
 			Current_T(1,3) = target_pose_.pose.position.y;
 			Current_T(2,3) = target_pose_.pose.position.z;
 
-			Eigen::Matrix4d Target_T = Current_T*Current_T.inverse()*RT*Delta_T*RT.inverse()*Current_T; 
+			Eigen::Matrix4d Target_T = Current_T*RT*Delta_T*RT.inverse();
 
 			tf::Matrix3x3 rotation_matrix;
 			rotation_matrix.setValue(Target_T(0,0), Target_T(0,1), Target_T(0,2),
@@ -172,11 +177,16 @@ public:
             // Implement your controller
 
             // Update Desired End-effector Pose to the 'target_pose_' variable.
-			Eigen::Matrix4d RT;
-			RT << 1, 0, 0, 0, 
-				  0, 0, 1, 0, 
-				  0, 1, 0, 0, 
-				  0, 0, 0, 1;
+			Eigen::Matrix4d T_base2master;
+			T_base2master << 1, 0, 0, 0, 
+				  			0, 0, -1, 0, 
+				  			0, 1, 0, 0, 
+				  			0, 0, 0, 1;
+			
+			Eigen::Matrix4d T_EE2base = Eigen::Matrix4d::Identity();
+			T_EE2base.block<3, 3>(0, 0) = current_rot_eig.inverse();
+
+			Eigen::Matrix4d RT = T_EE2base * T_base2master;
 
 			Eigen::Matrix4d Delta_T = Eigen::Matrix4d::Identity();
 			Delta_T.block<3, 3>(0, 0) = mst_rot_eig;
@@ -190,7 +200,7 @@ public:
 			Current_T(1,3) = target_pose_.pose.position.y;
 			Current_T(2,3) = target_pose_.pose.position.z;
 
-			Eigen::Matrix4d Target_T = Current_T*Current_T.inverse()*RT*Delta_T*RT.inverse()*Current_T; 
+			Eigen::Matrix4d Target_T = Current_T*RT*Delta_T*RT.inverse(); 
 
 			tf::Matrix3x3 rotation_matrix;
 			rotation_matrix.setValue(Target_T(0,0), Target_T(0,1), Target_T(0,2),
